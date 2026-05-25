@@ -14,3 +14,4 @@ const adapter = new PrismaNeon(pool);
 const prisma = new PrismaClient({ adapter });
 
 module.exports = prisma;
+
