@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre       String      @db.VarChar(100)
+  correo       String      @unique @db.VarChar(100)
+  passwordHash String      @map("password_hash") @db.VarChar(255)
+  rol          String      @default("inspector") @db.VarChar(50)
+  firmaUrl     String?     @map("firma_url") @db.Text
+  creadoEn     DateTime?   @default(now()) @map("creado_en")
+  inspecciones InspeccionQuintaRueda[]
+  @@map("usuarios")
+}
+
+model Cliente {
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tipoDocumento      String      @map("tipo_documento") @db.VarChar(20)
+  numeroDocumento    String      @unique @map("numero_documento") @db.VarChar(50)
+  nombreRazonSocial  String      @map("nombre_razon_social") @db.VarChar(150)
+  telefono           String      @db.VarChar(20)
+  correo             String?     @db.VarChar(100)
+  creadoEn           DateTime?   @default(now()) @map("creado_en")
+  vehiculos          Vehiculo[]
+  @@map("clientes")
+}
+
+model Vehiculo {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  placa     String      @unique @db.VarChar(10)
+  clienteId String?     @map("cliente_id") @db.Uuid
+  marca     String?     @db.VarChar(50)
+  modelo    String?     @db.VarChar(4)
+  tipo      String      @db.VarChar(50)
+  creadoEn  DateTime?   @default(now()) @map("creado_en")
+  cliente   Cliente?    @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  inspecciones InspeccionQuintaRueda[]
+  @@map("vehiculos")
+}
+
+model InspeccionQuintaRueda {
+  id                   String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehiculoId           String?     @map("vehiculo_id") @db.Uuid
+  inspectorId          String?     @map("inspector_id") @db.Uuid
+  estado               String?     @default("en_proceso") @db.VarChar(20)
+  medidaDesgastePlato  Decimal?    @map("medida_desgaste_plato") @db.Decimal(5, 2)
+  medidaMordazas       Decimal?    @map("medida_mordazas") @db.Decimal(5, 2)
+  resultadoEnd         String?     @map("resultado_end") @db.Text
+  fechaInspeccion      DateTime?   @default(now()) @map("fecha_inspeccion")
+  vehiculo             Vehiculo?   @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  inspector            Usuario?    @relation(fields: [inspectorId], references: [id])
+  evidencias           EvidenciaFotografica[]
+  certificado          Certificado?
+  @@map("inspecciones_quinta_rueda")
+}
+
+model EvidenciaFotografica {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inspeccionId  String?     @map("inspeccion_id") @db.Uuid
+  tipoFoto      String      @map("tipo_foto") @db.VarChar(50)
+  urlImagen     String      @map("url_imagen") @db.Text
+  subidoEn      DateTime?   @default(now()) @map("subido_en")
+  inspeccion    InspeccionQuintaRueda? @relation(fields: [inspeccionId], references: [id], onDelete: Cascade)
+  @@map("evidencias_fotograficas")
+}
+
+model Certificado {
+  uuidCertificado   String      @id @default(dbgenerated("gen_random_uuid()")) @map("uuid_certificado") @db.Uuid
+  inspeccionId      String      @unique @map("inspeccion_id") @db.Uuid
+  fechaEmision      DateTime?   @default(now()) @map("fecha_emision")
+  fechaVencimiento  DateTime    @map("fecha_vencimiento")
+  urlPdf            String      @map("url_pdf") @db.Text
+  qrCodigo          String      @map("qr_codigo") @db.Text
+  inspeccion        InspeccionQuintaRueda @relation(fields: [inspeccionId], references: [id], onDelete: Cascade)
+  @@map("certificados")
+}
