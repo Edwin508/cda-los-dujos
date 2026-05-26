@@ -20,21 +20,21 @@ const registrarUsuario = async (req, res) => {
 
     // Encriptar (hashear) la contraseña
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHashGenerado = await bcrypt.hash(password, salt);
 
-    // Crear el usuario en la BD usando SQL puro
+    // Crear el usuario apuntando a la tabla 'usuarios' y columna 'password_hash' exacta de Neon
     const consulta = `
-      INSERT INTO "Usuario" (nombre, correo, "passwordHash", rol) 
+      INSERT INTO usuarios (nombre, correo, password_hash, rol) 
       VALUES ($1, $2, $3, $4) 
       RETURNING *;
     `;
-    const valores = [nombre, correo, passwordHash, rol];
+    const valores = [nombre, correo, passwordHashGenerado, rol];
 
     const resultado = await pool.query(consulta, valores);
     const nuevoUsuario = resultado.rows[0];
 
     // Eliminamos el password del objeto de respuesta por seguridad
-    const { passwordHash: _, ...usuarioSinPassword } = nuevoUsuario;
+    const { password_hash: _, ...usuarioSinPassword } = nuevoUsuario;
 
     res.status(201).json({ status: 'success', data: usuarioSinPassword });
 
@@ -57,8 +57,8 @@ const loginUsuario = async (req, res) => {
       return res.status(400).json({ status: 'error', mensaje: 'Correo y contraseña son obligatorios' });
     }
 
-    // 1. Buscar al usuario por correo usando SQL puro
-    const consulta = `SELECT * FROM "Usuario" WHERE correo = $1`;
+    // 1. Buscar al usuario apuntando a la tabla 'usuarios' exacta de Neon
+    const consulta = `SELECT * FROM usuarios WHERE correo = $1`;
     const resultado = await pool.query(consulta, [correo]);
     const usuario = resultado.rows[0];
 
@@ -66,8 +66,8 @@ const loginUsuario = async (req, res) => {
       return res.status(401).json({ status: 'error', mensaje: 'Credenciales inválidas' }); 
     }
 
-    // 2. Comparar la contraseña ingresada con el hash guardado
-    const passwordValido = await bcrypt.compare(password, usuario.passwordHash);
+    // 2. Comparar la contraseña ingresada con el hash guardado en 'password_hash'
+    const passwordValido = await bcrypt.compare(password, usuario.password_hash);
     if (!passwordValido) {
       return res.status(401).json({ status: 'error', mensaje: 'Credenciales inválidas' });
     }
@@ -76,11 +76,11 @@ const loginUsuario = async (req, res) => {
     const token = jwt.sign(
       { id: usuario.id, rol: usuario.rol },
       process.env.JWT_SECRET,
-      { expiresIn: '8h' } // El token expira en el turno de trabajo de 8 horas
+      { expiresIn: '8h' }
     );
 
     // Quitamos la contraseña de la respuesta
-    const { passwordHash, ...usuarioData } = usuario;
+    const { password_hash, ...usuarioData } = usuario;
 
     // Entregamos el token y los datos del usuario
     res.status(200).json({ 
