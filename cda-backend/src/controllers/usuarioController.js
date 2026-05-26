@@ -1,4 +1,4 @@
-const prisma = require('../config/db');
+const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -22,15 +22,16 @@ const registrarUsuario = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Crear el usuario en la BD
-    const nuevoUsuario = await prisma.usuario.create({
-      data: {
-        nombre,
-        correo,
-        passwordHash, // Guardamos el hash, NUNCA la contraseña real
-        rol
-      }
-    });
+    // Crear el usuario en la BD usando SQL puro
+    const consulta = `
+      INSERT INTO "Usuario" (nombre, correo, "passwordHash", rol) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING *;
+    `;
+    const valores = [nombre, correo, passwordHash, rol];
+
+    const resultado = await pool.query(consulta, valores);
+    const nuevoUsuario = resultado.rows[0];
 
     // Eliminamos el password del objeto de respuesta por seguridad
     const { passwordHash: _, ...usuarioSinPassword } = nuevoUsuario;
@@ -39,7 +40,8 @@ const registrarUsuario = async (req, res) => {
 
   } catch (error) {
     console.error('Error al registrar usuario:', error);
-    if (error.code === 'P2002') {
+    // Código 23505 en PostgreSQL significa "Unique violation" (correo duplicado)
+    if (error.code === '23505') {
       return res.status(409).json({ status: 'error', mensaje: 'El correo ya se encuentra registrado' });
     }
     res.status(500).json({ status: 'error', mensaje: 'Error interno del servidor' });
@@ -55,10 +57,13 @@ const loginUsuario = async (req, res) => {
       return res.status(400).json({ status: 'error', mensaje: 'Correo y contraseña son obligatorios' });
     }
 
-    // 1. Buscar al usuario por correo
-    const usuario = await prisma.usuario.findUnique({ where: { correo } });
+    // 1. Buscar al usuario por correo usando SQL puro
+    const consulta = `SELECT * FROM "Usuario" WHERE correo = $1`;
+    const resultado = await pool.query(consulta, [correo]);
+    const usuario = resultado.rows[0];
+
     if (!usuario) {
-      return res.status(401).json({ status: 'error', mensaje: 'Credenciales inválidas' }); // Evitamos decir "el correo no existe" por seguridad
+      return res.status(401).json({ status: 'error', mensaje: 'Credenciales inválidas' }); 
     }
 
     // 2. Comparar la contraseña ingresada con el hash guardado
@@ -68,7 +73,6 @@ const loginUsuario = async (req, res) => {
     }
 
     // 3. Generar el Token (JWT)
-    // Guardamos el ID y el Rol del usuario dentro del token
     const token = jwt.sign(
       { id: usuario.id, rol: usuario.rol },
       process.env.JWT_SECRET,
