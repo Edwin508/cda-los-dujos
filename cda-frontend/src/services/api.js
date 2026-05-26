@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Creamos una instancia de Axios apuntando al puerto 3000 donde corre tu backend
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', 
+  baseURL: 'https://cda-los-dujos.onrender.com/api', 
 });
 
 // Interceptor: Antes de que salga cualquier petición, revisa si hay un token guardado
