@@ -1,36 +1,27 @@
-const prisma = require('../config/db');
+const pool = require('../config/db');
 
 // Crear un nuevo cliente
 const crearCliente = async (req, res) => {
   try {
-    // Extraemos los datos que nos envían desde el frontend (o Postman)
     const { tipoDocumento, numeroDocumento, nombreRazonSocial, telefono, correo } = req.body;
 
-    // Validación básica
     if (!numeroDocumento || !nombreRazonSocial || !telefono) {
-      return res.status(400).json({ 
-        status: 'error', 
-        mensaje: 'El documento, nombre y teléfono son obligatorios' 
-      });
+      return res.status(400).json({ status: 'error', mensaje: 'El documento, nombre y teléfono son obligatorios' });
     }
 
-    // Le pedimos a Prisma que cree el registro en Neon
-    const nuevoCliente = await prisma.cliente.create({
-      data: {
-        tipoDocumento,
-        numeroDocumento,
-        nombreRazonSocial,
-        telefono,
-        correo
-      }
-    });
-
-    res.status(201).json({ status: 'success', data: nuevoCliente });
+    const consulta = `
+      INSERT INTO clientes (tipo_documento, numero_documento, nombre_razon_social, telefono, correo) 
+      VALUES ($1, $2, $3, $4, $5) 
+      RETURNING id, tipo_documento AS "tipoDocumento", numero_documento AS "numeroDocumento", 
+                nombre_razon_social AS "nombreRazonSocial", telefono, correo, creado_en AS "creadoEn";
+    `;
+    
+    const resultado = await pool.query(consulta, [tipoDocumento, numeroDocumento, nombreRazonSocial, telefono, correo]);
+    res.status(201).json({ status: 'success', data: resultado.rows[0] });
 
   } catch (error) {
     console.error('Error al crear cliente:', error);
-    // Prisma arroja el código P2002 cuando intentas registrar un dato @unique que ya existe (ej. la cédula)
-    if (error.code === 'P2002') {
+    if (error.code === '23505') { 
       return res.status(409).json({ status: 'error', mensaje: 'Ya existe un cliente con ese número de documento' });
     }
     res.status(500).json({ status: 'error', mensaje: 'Error interno del servidor' });
@@ -40,18 +31,17 @@ const crearCliente = async (req, res) => {
 // Obtener todos los clientes
 const obtenerClientes = async (req, res) => {
   try {
-    const clientes = await prisma.cliente.findMany({
-      orderBy: { creadoEn: 'desc' } // Los ordenamos del más reciente al más antiguo
-    });
-    
-    res.status(200).json({ status: 'success', data: clientes });
+    const consulta = `
+      SELECT id, tipo_documento AS "tipoDocumento", numero_documento AS "numeroDocumento", 
+             nombre_razon_social AS "nombreRazonSocial", telefono, correo, creado_en AS "creadoEn" 
+      FROM clientes ORDER BY creado_en DESC;
+    `;
+    const resultado = await pool.query(consulta);
+    res.status(200).json({ status: 'success', data: resultado.rows });
   } catch (error) {
     console.error('Error al obtener clientes:', error);
     res.status(500).json({ status: 'error', mensaje: 'Error al obtener la lista de clientes' });
   }
 };
 
-module.exports = {
-  crearCliente,
-  obtenerClientes
-};
+module.exports = { crearCliente, obtenerClientes };
