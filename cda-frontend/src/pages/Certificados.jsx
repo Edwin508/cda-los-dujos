@@ -53,7 +53,7 @@ const Certificados = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border-t-4 border-yellow-500">
+        <div className="bg-white rounded-xl shadow-sm overflow-x-auto border-t-4 border-yellow-500">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
