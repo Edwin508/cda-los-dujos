@@ -95,7 +95,26 @@ const loginUsuario = async (req, res) => {
   }
 };
 
+// --- NUEVA FUNCIÓN PARA LISTAR USUARIOS ---
+const obtenerUsuarios = async (req, res) => {
+  try {
+    // Traemos todos los usuarios, pero sin el password_hash por seguridad
+    const consulta = `
+      SELECT id, nombre, correo, rol, creado_en 
+      FROM usuarios 
+      ORDER BY creado_en DESC;
+    `;
+    const resultado = await pool.query(consulta);
+
+    res.status(200).json({ status: 'success', data: resultado.rows });
+  } catch (error) {
+    console.error('Error al obtener los usuarios:', error);
+    res.status(500).json({ status: 'error', mensaje: 'Error interno al cargar el personal' });
+  }
+};
+
 module.exports = {
   registrarUsuario,
-  loginUsuario
+  loginUsuario,
+  obtenerUsuarios
 };
