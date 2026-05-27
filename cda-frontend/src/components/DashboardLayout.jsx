@@ -2,44 +2,42 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const DashboardLayout = ({ children }) => {
-  // useLocation nos permite saber en qué URL estamos parados actualmente
   const location = useLocation();
 
   const cerrarSesion = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
-    window.location.href = '/'; // Redirige al login
+    window.location.href = '/'; 
   };
 
-  // Definimos nuestro menú dinámico
   const menuItems = [
     { ruta: '/dashboard', icono: '👥', texto: 'Clientes' },
     { ruta: '/vehiculos', icono: '🚘', texto: 'Vehículos' },
-    { ruta: '/inspecciones', icono: '📋', texto: 'Inspecciones' }, // <-- Coma agregada
+    { ruta: '/inspecciones', icono: '📋', texto: 'Inspecciones' },
     { ruta: '/certificados', icono: '📜', texto: 'Certificados' },
     { ruta: '/usuarios', icono: '⚙️', texto: 'Usuarios' }
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    /* Bloqueamos el scroll de toda la pantalla (overflow-hidden) */
+    <div className="flex h-screen overflow-hidden bg-gray-100 font-sans">
       
-      {/* Barra Lateral (Sidebar) */}
-      <aside className="w-64 bg-gray-900 text-white flex flex-col shadow-xl">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-2xl font-bold text-blue-400 tracking-wide">CDA Los Dujos</h2>
-          <p className="text-sm text-gray-400 mt-1">Panel Operativo</p>
+      {/* Reducimos el ancho en móvil (w-48) y evitamos que se aplaste (flex-shrink-0) */}
+      <aside className="w-48 md:w-64 bg-gray-900 text-white flex flex-col shadow-xl flex-shrink-0 z-10">
+        <div className="p-4 md:p-6 border-b border-gray-800">
+          <h2 className="text-xl md:text-2xl font-bold text-blue-400 tracking-wide">CDA Los Dujos</h2>
+          <p className="text-xs md:text-sm text-gray-400 mt-1">Panel Operativo</p>
         </div>
         
-        <nav className="flex-1 px-4 py-6 space-y-3">
+        {/* Permitimos scroll interno en los botones (overflow-y-auto) */}
+        <nav className="flex-1 px-2 md:px-4 py-4 md:py-6 space-y-2 md:space-y-3 overflow-y-auto">
           {menuItems.map((item) => {
-            // Evaluamos si la ruta actual coincide con la ruta del botón
             const activo = location.pathname === item.ruta;
-            
             return (
               <Link 
                 key={item.ruta}
                 to={item.ruta} 
-                className={`block px-4 py-3 rounded-lg transition-colors ${
+                className={`block px-3 md:px-4 py-2 md:py-3 rounded-lg transition-colors text-sm md:text-base ${
                   activo 
                     ? 'bg-blue-600 font-semibold shadow-md text-white' 
                     : 'hover:bg-gray-800 text-gray-300'
@@ -54,15 +52,15 @@ const DashboardLayout = ({ children }) => {
         <div className="p-4 border-t border-gray-800">
           <button 
             onClick={cerrarSesion} 
-            className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+            className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors text-sm md:text-base"
           >
             Cerrar Sesión
           </button>
         </div>
       </aside>
 
-      {/* Contenedor Principal */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      {/* El contenedor principal ahora maneja su propio scroll internamente */}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
         {children}
       </main>
 
