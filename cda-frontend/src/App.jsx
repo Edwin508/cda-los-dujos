@@ -8,6 +8,7 @@ import Vehiculos from './pages/Vehiculos';
 import Inspecciones from './pages/Inspecciones';
 import Certificados from './pages/Certificados';
 import ValidarCertificado from './pages/ValidarCertificado';
+import Usuarios from './pages/Usuarios';
 
 /**
  * Componente Guardián (Protected Route):
@@ -68,6 +69,15 @@ const App = () => {
           element={
             <RutaProtegida>
               <Certificados />
+            </RutaProtegida>
+          } 
+        />
+
+        <Route 
+          path="/usuarios" 
+          element={
+            <RutaProtegida>
+              <Usuarios />
             </RutaProtegida>
           } 
         />

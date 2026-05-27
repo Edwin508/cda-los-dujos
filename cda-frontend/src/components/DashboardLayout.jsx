@@ -16,7 +16,8 @@ const DashboardLayout = ({ children }) => {
     { ruta: '/dashboard', icono: '👥', texto: 'Clientes' },
     { ruta: '/vehiculos', icono: '🚘', texto: 'Vehículos' },
     { ruta: '/inspecciones', icono: '📋', texto: 'Inspecciones' }, // <-- Coma agregada
-    { ruta: '/certificados', icono: '📜', texto: 'Certificados' }
+    { ruta: '/certificados', icono: '📜', texto: 'Certificados' },
+    { ruta: '/usuarios', icono: '⚙️', texto: 'Usuarios' }
   ];
 
   return (
