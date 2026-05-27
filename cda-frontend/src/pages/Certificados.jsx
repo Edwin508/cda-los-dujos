@@ -7,7 +7,6 @@ const Certificados = () => {
   const [cargandoId, setCargandoId] = useState(null);
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
 
-  // URL base de tu backend en Render para concatenar la ruta del PDF
   const BACKEND_URL = 'https://cda-los-dujos.onrender.com';
 
   useEffect(() => {
@@ -23,14 +22,15 @@ const Certificados = () => {
     }
   };
 
-  const emitirCertificado = async (inspeccionId) => {
+  const emitirCertificado = async (inspeccionId, decision) => {
     setCargandoId(inspeccionId);
     setMensaje({ texto: '', tipo: '' });
 
     try {
-      await api.post('/certificados', { inspeccionId });
+      // Enviamos el ID y la decisión tomada por el ingeniero al backend
+      await api.post('/certificados', { inspeccionId, resultadoFinal: decision });
       
-      setMensaje({ texto: '¡Certificado emitido y PDF generado con éxito!', tipo: 'success' });
+      setMensaje({ texto: `¡Certificado (${decision.toUpperCase()}) generado con éxito!`, tipo: 'success' });
       cargarInspecciones(); 
     } catch (error) {
       setMensaje({ 
@@ -59,8 +59,8 @@ const Certificados = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Vehículo</th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha Inspección</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado en Pista</th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Documento</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado Actual</th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones / Documento</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -83,7 +83,6 @@ const Certificados = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      {/* Enlace corregido apuntando directamente a Render */}
                       {insp.certificado ? (
                         <a 
                           href={`${BACKEND_URL}${insp.certificado.urlPdf}`} 
@@ -94,15 +93,22 @@ const Certificados = () => {
                           📄 Ver PDF
                         </a>
                       ) : (
-                        <button
-                          onClick={() => emitirCertificado(insp.id)}
-                          disabled={cargandoId === insp.id || insp.estado === 'rechazado'}
-                          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white transition-colors
-                            ${insp.estado === 'rechazado' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
-                          `}
-                        >
-                          {cargandoId === insp.id ? 'Generando...' : 'Emitir Certificado'}
-                        </button>
+                        <div className="flex space-x-2 justify-center">
+                          <button
+                            onClick={() => emitirCertificado(insp.id, 'aprobado')}
+                            disabled={cargandoId === insp.id}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 transition-colors"
+                          >
+                            ✅ Aprobar
+                          </button>
+                          <button
+                            onClick={() => emitirCertificado(insp.id, 'rechazado')}
+                            disabled={cargandoId === insp.id}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 transition-colors"
+                          >
+                            ❌ Rechazar
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

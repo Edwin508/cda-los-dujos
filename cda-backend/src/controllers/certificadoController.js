@@ -3,10 +3,10 @@ const { generarCertificadoPDF } = require('../services/certificadoService');
 
 const emitirCertificado = async (req, res) => {
   try {
-    const { inspeccionId } = req.body;
+    const { inspeccionId, resultadoFinal } = req.body;
 
-    if (!inspeccionId) {
-      return res.status(400).json({ status: 'error', mensaje: 'El ID de la inspección es obligatorio' });
+    if (!inspeccionId || !resultadoFinal) {
+      return res.status(400).json({ status: 'error', mensaje: 'Faltan datos o el resultado final' });
     }
 
     // 1. Buscamos la inspección
@@ -30,7 +30,10 @@ const emitirCertificado = async (req, res) => {
       return res.status(400).json({ status: 'error', mensaje: 'Esta inspección ya tiene un certificado emitido' });
     }
 
-    // 2. Creamos el registro del Certificado
+    // 2. Actualizamos el estado de la inspección en la base de datos
+    await pool.query('UPDATE inspecciones_quinta_rueda SET estado = $1 WHERE id = $2', [resultadoFinal, inspeccionId]);
+
+    // 3. Creamos el registro del Certificado
     const fechaVencimiento = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
     const insertCertificado = `
       INSERT INTO certificados (inspeccion_id, fecha_vencimiento, url_pdf, qr_codigo) 
@@ -44,21 +47,22 @@ const emitirCertificado = async (req, res) => {
     ]);
     let nuevoCertificado = resCertificado.rows[0];
 
-    // 3. Ensamblamos los datos para el PDF
-    const urlValidacion = `https://sistema.cdalosdujos.com/validar/${nuevoCertificado.uuidCertificado}`;
+    // 4. Ensamblamos los datos para el PDF
+    // Asegúrate de cambiar "TU_ENLACE_VERCEL" por el enlace real que te arrojó Vercel
+    const urlValidacion = `https://cda-los-dujos-frontend.vercel.app/validar/${nuevoCertificado.uuidCertificado}`;
     
     const datosPDF = {
       uuid: nuevoCertificado.uuidCertificado,
       placa: inspeccion.vehiculo.placa,
       fecha: new Date().toLocaleDateString('es-CO'),
-      resultado: inspeccion.estado,
+      resultado: resultadoFinal.toUpperCase(),
       qrUrl: urlValidacion
     };
 
-    // 4. Generar el archivo físico PDF
+    // 5. Generar el archivo físico PDF
     const rutaDelPdf = await generarCertificadoPDF(datosPDF);
 
-    // 5. Actualizamos el registro en la base de datos
+    // 6. Actualizamos el registro en la base de datos con las URLs definitivas
     const updateCertificado = `
       UPDATE certificados 
       SET url_pdf = $1, qr_codigo = $2 
@@ -77,7 +81,6 @@ const emitirCertificado = async (req, res) => {
   }
 };
 
-// --- NUEVA FUNCIÓN PARA VALIDAR EL QR ---
 const validarCertificado = async (req, res) => {
   try {
     const { uuid } = req.params;
@@ -87,6 +90,7 @@ const validarCertificado = async (req, res) => {
         c.uuid_certificado AS "uuidCertificado", 
         c.fecha_emision AS "fechaEmision", 
         c.fecha_vencimiento AS "fechaVencimiento",
+        i.estado as estado_inspeccion,
         json_build_object(
           'vehiculo', json_build_object('placa', v.placa)
         ) as inspeccion
@@ -110,5 +114,4 @@ const validarCertificado = async (req, res) => {
   }
 };
 
-// Asegúrate de exportar ambas funciones
 module.exports = { emitirCertificado, validarCertificado };
