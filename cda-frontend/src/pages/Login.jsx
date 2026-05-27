@@ -14,7 +14,7 @@ const Login = () => {
 
     try {
       // Como api.js ya tiene la URL base, solo llamamos al endpoint final
-      const respuesta = await api.post('/usuarios/registro', { correo, password });
+      const respuesta = await api.post('/usuarios/login', { correo, password });
       
       // Axios guarda la respuesta del servidor dentro de .data
       const datos = respuesta.data;

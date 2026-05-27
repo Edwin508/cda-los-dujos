@@ -1,19 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { emitirCertificado } = require('../controllers/certificadoController');
 
-// Importamos a nuestros guardias
+// Importamos ambas funciones desde el controlador
+const { emitirCertificado, validarCertificado } = require('../controllers/certificadoController');
+
+// Importamos a nuestros guardias para proteger solo la creación
 const { verificarToken, verificarRol } = require('../middlewares/authMiddleware');
 
-// Protegemos la ruta:
-// 1. Primero verifica que haya token
-// 2. Luego verifica que el rol sea ADMIN o INGENIERO
-// 3. Si todo está bien, ejecuta la emisión del certificado
+// RUTAS PROTEGIDAS (Solo ADMIN e INGENIERO)
 router.post(
   '/', 
   verificarToken, 
   verificarRol(['ADMIN', 'INGENIERO']), 
   emitirCertificado
 );
+
+// RUTA PÚBLICA (Para el escaneo del Código QR)
+router.get('/validar/:uuid', validarCertificado);
 
 module.exports = router;

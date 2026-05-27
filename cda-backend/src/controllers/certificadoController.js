@@ -77,4 +77,38 @@ const emitirCertificado = async (req, res) => {
   }
 };
 
-module.exports = { emitirCertificado };
+// --- NUEVA FUNCIÓN PARA VALIDAR EL QR ---
+const validarCertificado = async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    
+    const consulta = `
+      SELECT 
+        c.uuid_certificado AS "uuidCertificado", 
+        c.fecha_emision AS "fechaEmision", 
+        c.fecha_vencimiento AS "fechaVencimiento",
+        json_build_object(
+          'vehiculo', json_build_object('placa', v.placa)
+        ) as inspeccion
+      FROM certificados c
+      JOIN inspecciones_quinta_rueda i ON c.inspeccion_id = i.id
+      JOIN vehiculos v ON i.vehiculo_id = v.id
+      WHERE c.uuid_certificado = $1;
+    `;
+    
+    const resultado = await pool.query(consulta, [uuid]);
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ status: 'error', mensaje: 'Certificado no encontrado' });
+    }
+
+    res.status(200).json({ status: 'success', data: resultado.rows[0] });
+
+  } catch (error) {
+    console.error('Error al validar certificado:', error);
+    res.status(500).json({ status: 'error', mensaje: 'Error interno de validación' });
+  }
+};
+
+// Asegúrate de exportar ambas funciones
+module.exports = { emitirCertificado, validarCertificado };
